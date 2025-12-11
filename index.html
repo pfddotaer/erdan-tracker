@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>二蛋干了啥</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #81D4FA; --accent: #FFAB91; --poop: #BCAAA4; --pee: #FFF59D;
+            --bg: #FAFAFA; --card-bg: #FFFFFF; --text: #546E7A;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05); --radius: 20px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Quicksand', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg); color: var(--text);
+            margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%; max-width: 450px; background: var(--bg); padding: 20px; padding-bottom: 100px;
+        }
+
+        header { text-align: center; margin-bottom: 20px; margin-top: 10px; }
+        h1 { font-size: 1.6rem; font-weight: 700; margin: 0; color: var(--text); }
+        .date-display { font-size: 0.95rem; color: #90A4AE; font-weight: 600; margin-top: 5px; }
+
+        .card {
+            background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow); margin-bottom: 20px;
+        }
+
+        .status-title { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; color: var(--primary); }
+        .progress-wrapper { position: relative; height: 24px; background: #ECEFF1; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s ease; border-radius: 12px; }
+        .benchmark-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 2; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+        .stats-text { display: flex; justify-content: space-between; font-size: 0.9rem; color: #78909C; margin-top: 8px; }
+
+        .chart-container { position: relative; height: 200px; width: 100%; }
+
+        .actions-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 30px; }
+        .action-btn {
+            background: var(--card-bg); border: none; border-radius: var(--radius); padding: 20px 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: var(--shadow); cursor: pointer; transition: transform 0.1s;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn i { font-size: 1.8rem; margin-bottom: 10px; }
+        .action-btn span { font-weight: 600; font-size: 1rem; }
+        .btn-milk { color: var(--primary); }
+        .btn-poop { color: #8D6E63; }
+        .btn-pee { color: #FBC02D; }
+
+        .history-header { font-size: 1.1rem; margin-bottom: 15px; font-weight: 700; }
+        .history-list { list-style: none; padding: 0; }
+        
+        .history-item {
+            display: flex; align-items: center; background: var(--card-bg); margin-bottom: 10px;
+            padding: 15px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            animation: slideIn 0.3s ease-out;
+            cursor: pointer; position: relative;
+        }
+        .history-item:active { background-color: #F5F5F5; }
+
+        .icon-box { 
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            margin-right: 15px; font-size: 1.2rem; flex-shrink: 0; transition: transform 0.2s;
+        }
+        .history-details { flex-grow: 1; }
+        .history-time { font-size: 0.75rem; color: #90A4AE; }
+        .history-title { font-weight: 600; font-size: 1rem; }
+        .edit-hint { color: #ECEFF1; margin-left: 10px; }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal.active { opacity: 1; pointer-events: all; }
+        .modal-content {
+            background: white; width: 90%; max-width: 350px; padding: 30px;
+            border-radius: var(--radius); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"] { width: 100%; margin: 20px 0; accent-color: var(--primary); }
+        label { display: block; text-align: left; font-size: 0.9rem; color: #90A4AE; margin-top: 15px; margin-bottom: 5px; font-weight: 600;}
+        input[type="datetime-local"] {
+            width: 100%; padding: 10px; border: 2px solid #ECEFF1; border-radius: 10px;
+            font-family: 'Quicksand', sans-serif; font-size: 1rem; color: var(--text);
+        }
+
+        .primary-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 30px;
+            border-radius: 30px; font-size: 1rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px;
+        }
+        .delete-full-btn { background: #FFCDD2; color: #C62828; margin-top: 10px; }
+        .close-btn { background: #ECEFF1; color: #78909C; margin-top: 10px; }
+        
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg);
+            display: flex; align-items: center; justify-content: center; z-index: 200;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div style="text-align:center">
+        <i class="fa-solid fa-baby fa-bounce" style="font-size: 3rem; color: var(--primary);"></i>
+        <p style="margin-top:15px; font-weight:600;">二蛋数据同步中...</p>
+    </div>
+</div>
+
+<div class="app-container">
+    <header>
+        <h1>二蛋干了啥</h1>
+        <div class="date-display" id="currentDate"></div>
+    </header>
+
+    <!-- Milk Progress (Kept as Calendar Day for Targets) -->
+    <div class="card">
+        <div class="status-title">今日喝奶进度</div>
+        <div class="progress-wrapper">
+            <div class="progress-bar" id="milkBar"></div>
+            <div class="benchmark-line" id="benchmarkLine" title="当前建议量"></div>
+        </div>
+        <div class="stats-text">
+            <span>已喝: <b id="consumedText">0 ml</b></span>
+            <span>目标: <b id="targetText">0 ml</b></span>
+        </div>
+    </div>
+
+    <!-- Timeline Chart (Rolling 24 Hours) -->
+    <div class="card">
+        <div class="status-title">24小时活动</div>
+        <div class="chart-container">
+            <canvas id="timelineChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-grid">
+        <button class="action-btn btn-milk" onclick="window.openAddMilkModal()">
+            <i class="fa-solid fa-bottle-droplet"></i>
+            <span>喝奶</span>
+        </button>
+        <button class="action-btn btn-poop" onclick="window.addActivity('poop')">
+            <i class="fa-solid fa-poo"></i>
+            <span>粑粑</span>
+        </button>
+        <button class="action-btn btn-pee" onclick="window.addActivity('pee')">
+            <i class="fa-solid fa-droplet"></i>
+            <span>嘘嘘</span>
+        </button>
+    </div>
+
+    <!-- History -->
+    <div>
+        <div class="history-header">最近活动 <span style="font-size:0.8rem; font-weight:400; color:#90A4AE">(点击修改)</span></div>
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+</div>
+
+<!-- Add Milk Modal -->
+<div class="modal" id="milkModal">
+    <div class="modal-content">
+        <h2 style="color: var(--primary)"><i class="fa-solid fa-bottle-droplet"></i> 喝奶</h2>
+        <p>喝了多少毫升(ml)？</p>
+        <h1 id="milkDisplayValue" style="font-size: 2.5rem; margin: 10px 0;">90 ml</h1>
+        <input type="range" id="milkSlider" min="10" max="300" step="5" value="90" oninput="window.updateMilkDisplay(this.value)">
+        <button class="primary-btn" onclick="window.confirmAddMilk()">保存</button>
+        <button class="primary-btn close-btn" onclick="window.closeModal('milkModal')">取消</button>
+    </div>
+</div>
+
+<!-- Edit Activity Modal -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h2 id="editModalTitle">修改记录</h2>
+        <label>时间</label>
+        <input type="datetime-local" id="editTimeInput">
+        <div id="editAmountContainer">
+            <label>奶量 (ml)</label>
+            <h1 id="editAmountDisplay" style="font-size: 2rem; margin: 5px 0; color:var(--primary)">0 ml</h1>
+            <input type="range" id="editAmountSlider" min="10" max="300" step="5" oninput="window.updateEditAmount(this.value)">
+        </div>
+        <input type="hidden" id="editDocId">
+        <button class="primary-btn" onclick="window.saveEdit()">更新</button>
+        <button class="primary-btn delete-full-btn" onclick="window.deleteActivity()">删除</button>
+        <button class="primary-btn close-btn" onclick="window.closeModal('editModal')">取消</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, orderBy, limit } 
+    from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // --------------------------------------------------------------
+    // ⬇️ PASTE YOUR FIREBASE CONFIG HERE ⬇️
+    // --------------------------------------------------------------
+    const firebaseConfig = {
+      // Paste your API keys here just like before!
+      apiKey: "AIzaSyD6cFCzKfMt7nde6GK1KqDz9hvQFDBIw7M",
+      authDomain: "erdan-tracker.firebaseapp.com",
+      projectId: "erdan-tracker",
+      storageBucket: "erdan-tracker.firebasestorage.app",
+      messagingSenderId: "67074630640",
+      appId: "1:67074630640:web:ae755e78581af24f3d3335",
+      measurementId: "G-E0WPWXS9PS"
+    };
+    // --------------------------------------------------------------
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const activitiesRef = collection(db, "activities");
+
+    const ER_DAN_BIRTHDAY = "2025-11-11";
+    let globalActivities = [];
+    let myChart = null;
+
+    // Listen to Database
+    const q = query(activitiesRef, orderBy("timestamp", "desc"), limit(100));
+    onSnapshot(q, (snapshot) => {
+        globalActivities = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        document.getElementById('loadingOverlay').style.display = 'none';
+        renderDashboard();
+    });
+
+    // Helper: ISO for Input
+    function toLocalISOString(date) {
+        const pad = (num) => (num < 10 ? '0' : '') + num;
+        return date.getFullYear() +
+            '-' + pad(date.getMonth() + 1) +
+            '-' + pad(date.getDate()) +
+            'T' + pad(date.getHours()) +
+            ':' + pad(date.getMinutes());
+    }
+
+    // UI Functions
+    window.updateDateHeader = () => {
+        const options = { weekday: 'long', month: 'long', day: 'numeric' };
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('zh-CN', options);
+    };
+
+    window.openAddMilkModal = () => {
+        document.getElementById('milkModal').classList.add('active');
+        document.getElementById('milkSlider').value = 90;
+        window.updateMilkDisplay(90);
+    };
+
+    window.updateMilkDisplay = (val) => {
+        document.getElementById('milkDisplayValue').textContent = val + " ml";
+    };
+
+    window.confirmAddMilk = async () => {
+        const amount = parseInt(document.getElementById('milkSlider').value);
+        window.closeModal('milkModal');
+        await window.addActivity('milk', amount);
+    };
+
+    window.addActivity = async (type, amount = 0) => {
+        try {
+            await addDoc(activitiesRef, { type, amount, timestamp: new Date().toISOString() });
+        } catch (e) {
+            console.error(e);
+            alert("同步失败，请检查网络");
+        }
+    };
+
+    window.openEditModal = (id, type, amount, timestamp) => {
+        document.getElementById('editDocId').value = id;
+        const titleMap = { 'milk': '修改喝奶记录', 'pee': '修改嘘嘘记录', 'poop': '修改粑粑记录' };
+        document.getElementById('editModalTitle').textContent = titleMap[type];
+        
+        document.getElementById('editTimeInput').value = toLocalISOString(new Date(timestamp));
+
+        const amtContainer = document.getElementById('editAmountContainer');
+        if (type === 'milk') {
+            amtContainer.style.display = 'block';
+            document.getElementById('editAmountSlider').value = amount;
+            document.getElementById('editAmountDisplay').textContent = amount + " ml";
+        } else {
+            amtContainer.style.display = 'none';
+        }
+        document.getElementById('editModal').classList.add('active');
+    };
+
+    window.updateEditAmount = (val) => {
+        document.getElementById('editAmountDisplay').textContent = val + " ml";
+    };
+
+    window.saveEdit = async () => {
+        const id = document.getElementById('editDocId').value;
+        const timeInput = document.getElementById('editTimeInput').value;
+        const amtInput = parseInt(document.getElementById('editAmountSlider').value);
+        
+        if(!timeInput) return alert("请选择时间");
+        const updateData = { timestamp: new Date(timeInput).toISOString() };
+        if(document.getElementById('editAmountContainer').style.display !== 'none') {
+            updateData.amount = amtInput;
+        }
+        window.closeModal('editModal');
+        await updateDoc(doc(db, "activities", id), updateData);
+    };
+
+    window.deleteActivity = async () => {
+        const id = document.getElementById('editDocId').value;
+        if(confirm("确定彻底删除这条记录吗？")) {
+            window.closeModal('editModal');
+            await deleteDoc(doc(db, "activities", id));
+        }
+    };
+
+    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+    function renderDashboard() {
+        window.updateDateHeader();
+        renderHistory();
+        renderProgress();
+        renderChart();
+    }
+
+    function renderProgress() {
+        const birthDate = new Date(ER_DAN_BIRTHDAY);
+        const today = new Date();
+        const diffDays = Math.ceil(Math.abs(today - birthDate) / (1000 * 60 * 60 * 24)); 
+        let target = 1000;
+        if (diffDays <= 7) target = 400;
+        else if (diffDays <= 30) target = 600;
+        else if (diffDays <= 90) target = 800;
+        else if (diffDays <= 180) target = 900;
+
+        const todayStr = new Date().toDateString();
+        const todayMilk = globalActivities
+            .filter(a => a.type === 'milk' && new Date(a.timestamp).toDateString() === todayStr)
+            .reduce((sum, a) => sum + a.amount, 0);
+
+        document.getElementById('consumedText').textContent = `${todayMilk} ml`;
+        document.getElementById('targetText').textContent = `${target} ml`;
+
+        let percentage = (todayMilk / target) * 100;
+        if (percentage > 100) percentage = 100;
+        document.getElementById('milkBar').style.width = percentage + "%";
+
+        const now = new Date();
+        const minutesPassed = (now.getHours() * 60) + now.getMinutes();
+        document.getElementById('benchmarkLine').style.left = ((minutesPassed / (24 * 60)) * 100) + "%";
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        list.innerHTML = '';
+        const recentItems = globalActivities.slice(0, 50);
+
+        recentItems.forEach(item => {
+            const date = new Date(item.timestamp);
+            const timeString = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const isToday = new Date().toDateString() === date.toDateString();
+            const dateString = isToday ? "今天" : date.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
+
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.onclick = () => window.openEditModal(item.id, item.type, item.amount, item.timestamp);
+            
+            // Dynamic Icons
+            let iconClass = '', bgStyle = '', title = '', detail = '', scale = 1;
+            if (item.type === 'milk') {
+                iconClass = 'fa-bottle-droplet'; 
+                bgStyle = 'background: #E1F5FE; color: var(--primary)';
+                title = '喝奶'; detail = `${item.amount} ml`;
+                if(item.amount < 60) scale = 0.85;       
+                else if(item.amount > 130) scale = 1.25; 
+            } else if (item.type === 'poop') {
+                iconClass = 'fa-poo'; bgStyle = 'background: #D7CCC8; color: #8D6E63'; title = '拉粑粑';
+            } else if (item.type === 'pee') {
+                iconClass = 'fa-droplet'; bgStyle = 'background: #FFF9C4; color: #FBC02D'; title = '尿尿';
+            }
+
+            li.innerHTML = `
+                <div class="icon-box" style="${bgStyle}; transform: scale(${scale})"><i class="fa-solid ${iconClass}"></i></div>
+                <div class="history-details">
+                    <div class="history-title">${title} ${detail ? `<b>${detail}</b>` : ''}</div>
+                    <div class="history-time">${dateString} ${timeString}</div>
+                </div>
+                <div class="edit-hint"><i class="fa-solid fa-pen" style="color:#CFD8DC"></i></div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderChart() {
+        const ctx = document.getElementById('timelineChart');
+        if(!ctx) return;
+        
+        // --- Rolling 24 Hours Logic ---
+        const now = new Date();
+        const startWindow = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // 24 hours ago
+
+        const chartActivities = globalActivities.filter(a => {
+            const t = new Date(a.timestamp);
+            return t >= startWindow && t <= now;
+        });
+
+        const chartData = chartActivities.map(a => {
+            let yVal, emoji;
+            if (a.type === 'milk') { yVal = 3; emoji = '🍼'; }
+            if (a.type === 'poop') { yVal = 2; emoji = '💩'; }
+            if (a.type === 'pee')  { yVal = 1; emoji = '💧'; }
+            return { x: new Date(a.timestamp).getTime(), y: yVal, emoji: emoji, amt: a.amount };
+        });
+
+        if (myChart) myChart.destroy();
+
+        const emojiPlugin = {
+            id: 'emojiPlugin',
+            afterDatasetsDraw(chart) {
+                const { ctx, data } = chart;
+                ctx.save();
+                ctx.font = '22px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const meta = chart.getDatasetMeta(0);
+                meta.data.forEach((point, index) => {
+                    const emoji = data.datasets[0].data[index].emoji;
+                    // Ensure the point is within the visible chart area
+                    if(emoji && !point.hidden && point.x >= chart.chartArea.left && point.x <= chart.chartArea.right) {
+                        ctx.fillText(emoji, point.x, point.y);
+                    }
+                });
+                ctx.restore();
+            }
+        };
+
+        myChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    data: chartData,
+                    pointRadius: 0, 
+                    hitRadius: 25   
+                }]
+            },
+            plugins: [emojiPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+                        min: startWindow.getTime(),
+                        max: now.getTime(),
+                        grid: { display: false },
+                        ticks: { font: { family: 'Quicksand', size: 10 }, color: '#90A4AE', maxTicksLimit: 6 }
+                    },
+                    y: {
+                        type: 'linear', min: 0.5, max: 3.5,
+                        grid: { color: '#F5F5F5', drawBorder: false },
+                        ticks: {
+                            stepSize: 1,
+                            font: { family: 'PingFang SC', weight: 'bold', size: 12 },
+                            callback: v => v===3?'喝奶':v===2?'粑粑':v===1?'嘘嘘':'',
+                            color: c => c.tick.value===3?'#81D4FA':c.tick.value===2?'#8D6E63':c.tick.value===1?'#FBC02D':'#000'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: c => {
+                                const r = c.raw;
+                                return r.y===3 ? `喝奶: ${r.amt} ml` : (r.y===2 ? '拉粑粑' : '尿尿');
+                            },
+                            title: c => new Date(c[0].raw.x).toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', hour12: false})
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    setInterval(renderDashboard, 60000);
+
+</script>
+
+</body>
+</html>
